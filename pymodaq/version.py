@@ -8,20 +8,7 @@ from subprocess import Popen, PIPE
 from os.path import abspath, dirname
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-VERSION = (1, 6, 5, 'flim', 0)
-=======
-VERSION = (1, 7, 0, 'database', 0)
->>>>>>> parent of ab085bf... pep8 cleaning and other bits
-=======
-VERSION = (1, 6, 5, 'flim', 0)
->>>>>>> parent of 59284af... Merge pull request #22 from CEMES-CNRS/Dashboard
-=======
-VERSION = (1, 6, 5, 'flim', 0)
->>>>>>> parent of e6377d5... updated features to take into account temporary h5 file saved by plugins
-
+VERSION = (1, 6, 4, '', 0)
 
 def git_sha():
     loc = abspath(dirname(__file__))
