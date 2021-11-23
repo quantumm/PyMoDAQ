@@ -23,21 +23,22 @@ class Filter:
 
     def filter_data(self, data: utils.DataFromPlugins):
         if self._is_active:
-            filtered_data = self._filter_data(data)
+            filtered_data = self.concrete_filter_data(data)
             if filtered_data is not None and self._slot_to_send_data is not None:
                 self._slot_to_send_data(filtered_data)
+        return filtered_data
 
-    def _filter_data(self, data: utils.DataFromPlugins):
+    def concrete_filter_data(self, data: utils.DataFromPlugins):
         raise NotImplementedError
 
 
-class FilterFromCrosshair(Filter):
-    def __init__(self, crosshair: Crosshair, graph_items, image_keys):
+class FilterAtAlong(Filter):
+    def __init__(self, get_positions, graph_items, image_keys):
         """
         Extract data along a crosshair using coordinates and data displayed in graph_items such as  imageItems
         Parameters
         ----------
-        crosshair : (Crosshair)
+        get_positions : (callable) if called returns the positions x, y where to get data from
         graph_items : (dict)
         image_keys : (list) list of string identifier to link datas to their graph_items. This means that in
             _filter_data, datas['data'][key] is plotted on graph_items[key] for key in image_keys
@@ -45,13 +46,27 @@ class FilterFromCrosshair(Filter):
         super().__init__()
         self._graph_items = graph_items
         self._image_keys = image_keys
-        self.crosshair = crosshair
+        self.get_positions = get_positions
         self._x, self._y = 0., 0.
 
-    def _filter_data(self, datas: utils.DataFromPlugins):
+    def concrete_filter_data(self, datas: utils.DataFromPlugins, xy=None):
+        """
+        concrete implementation in the case of a filter of type crosshair
+        Parameters
+        ----------
+        datas: (utils.DataFromPlugins) datas to filter
+        xy: (tuple) positions at/along which data should be filtered, if None self.get_positions is used)
+
+        Returns
+        -------
+        dict: data filtered
+        """
         data_dict = dict([])
         if datas is not None:
-            self._x, self._y = self.crosshair.get_positions()
+            if xy is None:
+                self._x, self._y = self.get_positions()
+            else:
+                self._x, self._y = xy
             data_type = datas['distribution']
             for data_index in range(len(self._image_keys)):
                 if data_index < len(datas['data']):
@@ -150,7 +165,7 @@ class FilterFromRois(Filter):
         self.axes = (0, 1)
         self._ROIs = roi_manager.ROIs
 
-    def _filter_data(self, datas: utils.DataFromPlugins) -> dict:
+    def concrete_filter_data(self, datas: utils.DataFromPlugins) -> dict:
         data_dict = dict([])
         if datas is not None:
             for roi_key, roi in self._ROIs.items():

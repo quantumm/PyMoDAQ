@@ -155,6 +155,7 @@ class TestData0DWithHistory:
         assert data_histo._data_length == 0
 
 
+
 class TestExtractAxis:
     def test_info_data_is_None(self):
         axis = utils.Axis(label='mylabel', units='myunits')
@@ -873,3 +874,18 @@ class TestMiscellanous:
 
         assert blocker.args[0] == approx(10.5)
         assert blocker.args[1] == approx(20.9)
+
+    def test_get_data_at_along(self, init_prog):
+        prog, qtbot = init_prog
+        data_red, data_green, data_blue, data_spread = init_data()
+        data = utils.DataFromPlugins(distribution='uniform', data=[data_red, data_green])
+        prog.show_data(data)
+        XPOS, YPOS = 10, 20
+        data_dict = prog.get_data_at_along(XPOS, YPOS)
+        assert np.any(data_dict['red'].hor_data == approx(data_red[YPOS, :]))
+        assert np.any(data_dict['red'].ver_data == approx(data_red[:, XPOS]))
+        assert data_dict['red'].int_data == approx(data_red[YPOS, XPOS])
+
+        assert np.any(data_dict['green'].hor_data == approx(data_green[YPOS, :]))
+        assert np.any(data_dict['green'].ver_data == approx(data_green[:, XPOS]))
+        assert data_dict['green'].ver_data == approx(data_green[:, XPOS])

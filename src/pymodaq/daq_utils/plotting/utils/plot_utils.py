@@ -250,11 +250,14 @@ def makePolygons(tri):
     return polygons
 
 
+def data_key_formatter(ind: int):
+    return f'data_{ind:02d}'
+
 class Data0DWithHistory:
     def __init__(self, Nsamples=200):
         super().__init__()
         self._datas = dict([])
-        self.Nsamples = Nsamples
+        self._Nsamples = Nsamples
         self._xaxis = None
         self._data_length = 0
 
@@ -266,7 +269,7 @@ class Data0DWithHistory:
         ----------
         datas: (list) list of floats or np.array(float)
         """
-        datas = {f'data_{ind:02d}': datas[ind] for ind in range(len(datas))}
+        datas = {data_key_formatter(ind): datas[ind] for ind in range(len(datas))}
         self.add_datas(datas)
 
     @dispatch(dict)
@@ -282,7 +285,7 @@ class Data0DWithHistory:
 
         self._data_length += 1
 
-        if self._data_length > self.Nsamples:
+        if self._data_length > self._Nsamples:
             self._xaxis += 1
         else:
             self._xaxis = np.linspace(0, self._data_length, self._data_length, endpoint=False)
@@ -296,7 +299,7 @@ class Data0DWithHistory:
             else:
                 self._datas[data_key] = np.concatenate((self._datas[data_key], data))
 
-            if self._data_length > self.Nsamples:
+            if self._data_length > self._Nsamples:
                 self._datas[data_key] = self._datas[data_key][1:]
 
     @property
@@ -307,8 +310,13 @@ class Data0DWithHistory:
     def xaxis(self):
         return self._xaxis
 
+    def update_history_length(self, Nsamples):
+        self._Nsamples = Nsamples
+        self.clear_data()
+
     def clear_data(self):
-        self._datas = dict([])
+        for data_key in self._datas:
+            self._datas[data_key] = np.array([])
         self._data_length = 0
         self._xaxis = np.array([])
 

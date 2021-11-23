@@ -6,6 +6,7 @@ from pymodaq.daq_utils.messenger import deprecation_msg
 import pymodaq.daq_utils.daq_utils as utils
 from pymodaq.daq_utils.plotting.data_viewers.viewer0D_GUI import Ui_Form
 from pymodaq.daq_utils.plotting.data_viewers.viewerbase import ViewerError
+from pymodaq.daq_utils.plotting.utils.plot_utils import Data0DWithHistory
 import numpy as np
 from collections import OrderedDict
 import datetime
@@ -33,56 +34,52 @@ class Viewer0D(QtWidgets.QWidget, QObject):
         self.ui = Ui_Form()
         self.ui.setupUi(parent)
 
-        # self.ui.statusbar = QtWidgets.QStatusBar(parent)
-        # self.ui.statusbar.setMaximumHeight(15)
-        # self.ui.StatusBarLayout.addWidget(self.ui.statusbar)
-        # self.ui.status_message = QtWidgets.QLabel()
-        # self.ui.status_message.setMaximumHeight(15)
-        # self.ui.statusbar.addWidget(self.ui.status_message)
-
         self.ui.xaxis_item = self.ui.Graph1D.plotItem.getAxis('bottom')
 
         self._labels = []
         self.viewer_type = 'Data0D'
         self.wait_time = 1000
 
-        self.plot_channels = None
+        self.plot_channels = []
         self.plot_colors = utils.plot_colors
 
         self.Nsamples = self.ui.Nhistory_sb.value()
+        self.data_history = Data0DWithHistory(self.Nsamples)
 
-        self.x_axis = np.linspace(0, self.Nsamples - 1, self.Nsamples)
-        self.datas = []  # datas on each channel. list of 1D arrays
         self.legend = self.ui.Graph1D.plotItem.addLegend()
         self.data_to_export = None
         self.list_items = None
 
         # #Connecting buttons:
         self.ui.clear_pb.clicked.connect(self.clear_data)
-        self.ui.Nhistory_sb.valueChanged.connect(self.update_x_axis)
+        self.ui.Nhistory_sb.valueChanged.connect(self.data_history.update_history_length)
         self.ui.show_datalist_pb.clicked.connect(self.show_data_list)
 
         self.show_data_list(False)
 
     def clear_data(self):
-        N = len(self.datas)
-        self.datas = []
-        for ind in range(N):
-            self.datas.append(np.array([]))
-        self.x_axis = np.array([])
-        for ind_plot, data in enumerate(self.datas):
-            self.plot_channels[ind_plot].setData(x=self.x_axis, y=data)
+        self.data_history.clear_data()
+        for plot in self.plot_channels:
+            plot.setData(x=np.array([]), y=np.array([]))
 
     @dispatch(utils.DataFromPlugins)
     def show_data(self, datas: utils.DataFromPlugins):
         self._show_data(datas['data'])
         if datas['labels'] != [] and datas['labels'] != self.labels:
-            self.update_labels(datas['labels'])
+            self.labels = datas['labels']
 
     @dispatch(list)
     def show_data(self, datas: list):
         deprecation_msg(f'Show_data method from Viewer0D accept as argument a DataFromPlugins object', stacklevel=3)
-        self._show_data(datas)
+        if not isinstance(datas[0], np.ndarray):
+            data_as_ndarray = []
+            for dat in datas:
+                if isinstance(dat, list):
+                    data_as_ndarray.append(np.array(dat))
+                else:
+                    data_as_ndarray.append(np.array([dat]))
+        dat = utils.DataFromPlugins(dim='Data0D', data=data_as_ndarray)
+        self.show_data(dat)
 
     def init_channels(self, datas):
         self.update_channels()
@@ -91,12 +88,10 @@ class Viewer0D(QtWidgets.QWidget, QObject):
             self._labels = [default_label_formatter(ind) for ind in range(Ndatas)]
 
         self.plot_channels = []
-        self.datas = []
         self.ui.values_list.clear()
         self.ui.values_list.addItems(['{:.06e}'.format(data[0]) for data in datas])
         self.list_items = [self.ui.values_list.item(ind) for ind in range(self.ui.values_list.count())]
         for ind in range(len(datas)):
-            self.datas.append(np.array([]))
             channel = self.ui.Graph1D.plot(y=np.array([]))
             channel.setPen(self.plot_colors[ind])
             self.plot_channels.append(channel)
@@ -115,9 +110,10 @@ class Viewer0D(QtWidgets.QWidget, QObject):
             self.data_to_export = OrderedDict(name=self.title, data0D=OrderedDict(), data1D=None, data2D=None)
             if self.plot_channels is None or len(self.plot_channels) != len(datas):
                 self.init_channels(datas)
+            self.data_history.add_datas(dict(zip(self.labels, datas)))
 
             self.update_list_items(datas)
-            self.update_Graph1D(datas)
+            self.update_plots()
         except Exception as e:
             logger.exception(str(e))
 
@@ -137,34 +133,13 @@ class Viewer0D(QtWidgets.QWidget, QObject):
         """
         pass
 
-    def update_Graph1D(self, datas):
-        try:
-            data_tot = []
-            L = len(self.datas[0]) + 1
-            if L > self.Nsamples:
-                self.x_axis += 1
-            else:
-                self.x_axis = np.linspace(0, L - 1, L)
-            for ind_plot, data in enumerate(datas):
-                data_tmp = self.datas[ind_plot]
-                data_tmp = np.append(data_tmp, data)
+    def update_plots(self):
 
-                if len(data_tmp) > self.Nsamples:
-                    data_tmp = data_tmp[L - self.Nsamples:]
+        for ind_data, plot in enumerate(self.plot_channels):
+            plot.setData(x=self.data_history.xaxis, y=self.data_history.datas[self.labels[ind_data]])
 
-                data_tot.append(data_tmp)
-
-                self.plot_channels[ind_plot].setData(x=self.x_axis, y=data_tmp)
-                self.data_to_export['data0D']['CH{:03d}'.format(ind_plot)] = utils.DataToExport(name=self.title,
-                                                                                                data=data[0],
-                                                                                                source='raw')
-            self.datas = data_tot
-
-            self.data_to_export['acq_time_s'] = datetime.datetime.now().timestamp()
-            self.data_to_export_signal.emit(self.data_to_export)
-
-        except Exception as e:
-            logger.exception(str(e))
+        self.data_to_export['acq_time_s'] = datetime.datetime.now().timestamp()
+        self.data_to_export_signal.emit(self.data_to_export)
 
     def update_channels(self):
         if self.plot_channels is not None:
@@ -215,7 +190,7 @@ if __name__ == '__main__':  # pragma: no cover
     y2 = gauss1D(x, 120, 50, 2)
     Form.show()
     for ind, data in enumerate(y1):
-        prog.show_data([[data], [y2[ind]]])
+        prog.show_data([np.array([data]), np.array([y2[ind]])])
         QtWidgets.QApplication.processEvents()
 
     sys.exit(app.exec_())

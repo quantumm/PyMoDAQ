@@ -17,7 +17,7 @@ from pymodaq.daq_utils.plotting.items.image import UniformImageItem, SpreadImage
 from pymodaq.daq_utils.plotting.items.axis_scaled import AXIS_POSITIONS
 from pymodaq.daq_utils.plotting.items.crosshair import Crosshair
 from pymodaq.daq_utils.plotting.utils.plot_utils import Data0DWithHistory, AxisInfosExtractor
-from pymodaq.daq_utils.plotting.utils.filter import FilterFromCrosshair, FilterFromRois
+from pymodaq.daq_utils.plotting.utils.filter import FilterAtAlong, FilterFromRois
 import pymodaq.daq_utils.daq_utils as utils
 import pymodaq.daq_utils.gui_utils as gutils
 from pymodaq.daq_utils.exceptions import ViewerError
@@ -630,7 +630,6 @@ class View2D(ActionManager, QtCore.QObject):
         self.splitter_VRight.blockSignals(False)
 
 
-
     def get_double_clicked(self):
         return self.image_widget.view.sig_double_clicked
 
@@ -738,8 +737,9 @@ class Viewer2D(ViewerBase):
         self.filter_from_rois.register_activation_signal(self.view.get_action('roi').triggered)
         self.filter_from_rois.register_target_slot(self.process_roi_lineouts)
 
-        self.filter_from_crosshair = FilterFromCrosshair(self.view.crosshair, self.view.data_displayer.get_images(),
-                                                         IMAGE_TYPES)
+        self.filter_from_crosshair = FilterAtAlong(self.view.crosshair.get_positions,
+                                                   self.view.data_displayer.get_images(),
+                                                   IMAGE_TYPES)
         self.filter_from_crosshair.register_activation_signal(self.view.get_action('crosshair').triggered)
         self.filter_from_crosshair.register_target_slot(self.process_crosshair_lineouts)
 
@@ -750,6 +750,12 @@ class Viewer2D(ViewerBase):
     @Slot(dict)
     def roi_changed(self):
         self.filter_from_rois.filter_data(self._datas)
+
+    def get_data_at_along(self, x: float, y: float) -> dict:
+        """
+        Get data as filtered from the filter_from_crosshair at the position x and y
+        """
+        return self.filter_from_crosshair.concrete_filter_data(self._datas, (x, y))
 
     def crosshair_changed(self):
         self.filter_from_crosshair.filter_data(self._datas)

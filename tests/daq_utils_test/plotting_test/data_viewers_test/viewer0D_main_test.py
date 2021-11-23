@@ -71,7 +71,25 @@ class TestViewer0D:
         assert prog.labels != WRONG_LABELS
 
         datas = utils.DataFromPlugins(dim='Data0D', data=[np.array([2.7]), np.array([9.6]), np.array([34.6])])
+        prog.show_data(datas)
         assert prog.labels == [default_label_formatter(ind) for ind in range(len(datas['data']))]
+
+    def test_clear_data(self, init_prog):
+        prog, qtbot = init_prog
+        x, y1, y2 = init_data()
+        for ind, data in enumerate(y1):
+            prog.show_data([[data], [y2[ind]]])
+            QtWidgets.QApplication.processEvents()
+
+        for data in prog.data_history.datas.values():
+            assert data.size == len(y1)
+        assert prog.data_history.xaxis.size == len(y1)
+
+        prog.clear_data()
+
+        for data in prog.data_history.datas.values():
+            assert data.size == 0
+        assert prog.data_history.xaxis.size == 0
 
     def test_clear_pb(self, init_prog):
         prog, qtbot = init_prog
@@ -81,15 +99,15 @@ class TestViewer0D:
             prog.show_data([[data], [y2[ind]]])
             QtWidgets.QApplication.processEvents()
 
-        for data in prog.datas:
-            assert data.size != 0
-        assert prog.x_axis.size != 0
+        for data in prog.data_history.datas.values():
+            assert data.size == len(y1)
+        assert prog.data_history.xaxis.size == len(y1)
 
         qtbot.mouseClick(prog.ui.clear_pb, QtCore.Qt.LeftButton)
 
-        for data in prog.datas:
+        for data in prog.data_history.datas.values():
             assert data.size == 0
-        assert prog.x_axis.size == 0
+        assert prog.data_history.xaxis.size == 0
 
     def test_Nhistory_sb(self, init_prog):
         prog, qtbot = init_prog
@@ -109,22 +127,6 @@ class TestViewer0D:
         qtbot.mouseClick(prog.ui.show_datalist_pb, QtCore.Qt.LeftButton)
         assert not prog.ui.values_list.isVisible()
         
-    def test_clear_data(self, init_prog):
-        prog, qtbot = init_prog
-        x, y1, y2 = init_data()
-        for ind, data in enumerate(y1):
-            prog.show_data([[data], [y2[ind]]])
-            QtWidgets.QApplication.processEvents()
-        
-        for data in prog.datas:
-            assert len(data) > 0
-        assert len(prog.x_axis) > 0
-
-        prog.clear_data()
-
-        for data in prog.datas:
-            assert data.size == 0
-        assert prog.x_axis.size == 0
 
     def test_show_data_list(self, init_prog):
         prog, qtbot = init_prog
@@ -140,35 +142,17 @@ class TestViewer0D:
         
         assert not prog.show_data_temp(None)
 
-    def test_update_Graph1D(self, init_prog):
+    def test_update_plots(self, init_prog):
         prog, qtbot = init_prog
 
-        datas = np.linspace(np.linspace(1, 10, 10), np.linspace(11, 20, 10), 2)
+        x, y1, y2 = init_data()
 
-        prog.datas = datas
-        prog.Nsamples = 10
-        prog.x_axis = np.linspace(1, 19, 19)
+        for ind, data in enumerate(y1):
+            prog.show_data([[data], [y2[ind]]])
+            QtWidgets.QApplication.processEvents()
 
-        prog.plot_channels = []
-        for i in range(2):
-            channel = prog.ui.Graph1D.plot(y=np.array([]))
-            channel.setPen(1)
-            prog.plot_channels.append(channel)
-
-        prog.data_to_export = OrderedDict(data0D={})
-
-        prog.update_Graph1D(datas)
-
-        assert np.array_equal(prog.plot_channels[0].getData(), np.array((np.array(prog.x_axis),
-                                                                         np.append(datas[0], datas[0])[1:])))
-        assert np.array_equal(prog.plot_channels[1].getData(), np.array((np.array(prog.x_axis),
-                                                                         np.append(datas[1], datas[1])[1:])))
-
-        assert prog.data_to_export['data0D']['CH000']
-        assert prog.data_to_export['data0D']['CH001']
-
-        data_tot = np.array([np.append(datas[0], datas[0])[1:], np.append(datas[1], datas[1])[1:]])
-        assert np.array_equal(np.array(prog.datas), data_tot)
+        assert np.any(prog.plot_channels[0].getData()[1] == pytest.approx(y1))
+        assert np.any(prog.plot_channels[1].getData()[1] == pytest.approx(y2))
 
     def test_update_channels(self, init_prog):
         prog, qtbot = init_prog
@@ -208,12 +192,5 @@ class TestViewer0D:
         
         assert prog.Nsamples == Nhistory
         assert np.array_equal(prog.x_axis, np.linspace(0, Nhistory - 1, Nhistory))
-
-    def test_labels(self, init_prog):
-        prog, qtbot = init_prog
-
-        assert not prog.labels
-        prog.labels = 'test_label'
-        assert prog.labels == 'test_label'
 
 
