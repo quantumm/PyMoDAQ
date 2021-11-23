@@ -1,14 +1,20 @@
 from qtpy import QtWidgets
 from qtpy.QtCore import QObject, Slot, Signal
 import sys
+from multipledispatch import dispatch
+from pymodaq.daq_utils.messenger import deprecation_msg
 import pymodaq.daq_utils.daq_utils as utils
 from pymodaq.daq_utils.plotting.data_viewers.viewer0D_GUI import Ui_Form
-
+from pymodaq.daq_utils.plotting.data_viewers.viewerbase import ViewerError
 import numpy as np
 from collections import OrderedDict
 import datetime
 
 logger = utils.set_logger(utils.get_module_name(__file__))
+
+
+def default_label_formatter(ind: int) -> str:
+    return f'CH{ind:02.0f}'
 
 
 class Viewer0D(QtWidgets.QWidget, QObject):
@@ -67,8 +73,37 @@ class Viewer0D(QtWidgets.QWidget, QObject):
         for ind_plot, data in enumerate(self.datas):
             self.plot_channels[ind_plot].setData(x=self.x_axis, y=data)
 
+    @dispatch(utils.DataFromPlugins)
+    def show_data(self, datas: utils.DataFromPlugins):
+        self._show_data(datas['data'])
+        if datas['labels'] != [] and datas['labels'] != self.labels:
+            self.update_labels(datas['labels'])
+
+    @dispatch(list)
+    def show_data(self, datas: list):
+        deprecation_msg(f'Show_data method from Viewer0D accept as argument a DataFromPlugins object', stacklevel=3)
+        self._show_data(datas)
+
+    def init_channels(self, datas):
+        self.update_channels()
+        Ndatas = len(datas)
+        if self.labels == [] or len(self.labels) != Ndatas:
+            self._labels = [default_label_formatter(ind) for ind in range(Ndatas)]
+
+        self.plot_channels = []
+        self.datas = []
+        self.ui.values_list.clear()
+        self.ui.values_list.addItems(['{:.06e}'.format(data[0]) for data in datas])
+        self.list_items = [self.ui.values_list.item(ind) for ind in range(self.ui.values_list.count())]
+        for ind in range(len(datas)):
+            self.datas.append(np.array([]))
+            channel = self.ui.Graph1D.plot(y=np.array([]))
+            channel.setPen(self.plot_colors[ind])
+            self.plot_channels.append(channel)
+        self.update_labels(self._labels)
+
     @Slot(list)
-    def show_data(self, datas):
+    def _show_data(self, datas: list):
         """
 
         Parameters
@@ -79,36 +114,16 @@ class Viewer0D(QtWidgets.QWidget, QObject):
         try:
             self.data_to_export = OrderedDict(name=self.title, data0D=OrderedDict(), data1D=None, data2D=None)
             if self.plot_channels is None or len(self.plot_channels) != len(datas):
-                # if self.plot_channels!=None:
-                #     if len(self.plot_channels) != len(datas):
-                #         for channel in self.plot_channels:
-                #             self.ui.Graph1D.removeItem(channel)
-                self.update_channels()
+                self.init_channels(datas)
 
-                if self.labels == [] or len(self.labels) != len(datas):
-                    self._labels = ["CH{}".format(ind) for ind in range(len(datas))]
-
-                self.plot_channels = []
-                self.datas = []
-                self.ui.values_list.clear()
-                self.ui.values_list.addItems(['{:.06e}'.format(data[0]) for data in datas])
-                self.list_items = [self.ui.values_list.item(ind) for ind in range(self.ui.values_list.count())]
-                for ind in range(len(datas)):
-                    self.datas.append(np.array([]))
-                    # channel=self.ui.Graph1D.plot(np.array([]))
-                    # channel=self.ui.Graph1D.plot(y=np.array([]), name=self._labels[ind])
-                    channel = self.ui.Graph1D.plot(y=np.array([]))
-                    channel.setPen(self.plot_colors[ind])
-                    # self.legend.addItem(channel,"CH{}".format(ind))
-                    self.plot_channels.append(channel)
-                self.update_labels(self._labels)
-
-            for ind, data in enumerate(datas):
-                self.list_items[ind].setText('{:.06e}'.format(data[0]))
-
+            self.update_list_items(datas)
             self.update_Graph1D(datas)
         except Exception as e:
             logger.exception(str(e))
+
+    def update_list_items(self, datas):
+        for ind, data in enumerate(datas):
+            self.list_items[ind].setText('{:.06e}'.format(data[0]))
 
     def show_data_list(self, state=None):
         if state is None:
@@ -183,6 +198,8 @@ class Viewer0D(QtWidgets.QWidget, QObject):
 
     @labels.setter
     def labels(self, labels):
+        if len(labels) != len(self.plot_channels):
+            raise ViewerError(f'The new labels {labels} are not consistent with the number of data curves')
         self._labels = labels
         self.update_labels(labels)
 

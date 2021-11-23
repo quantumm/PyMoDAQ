@@ -1,9 +1,7 @@
 from collections import OrderedDict
 from qtpy import QtWidgets
 from qtpy.QtCore import QObject, Signal, Slot
-from pymodaq.daq_utils.plotting.utils.filter import Filter
 from pymodaq.daq_utils import daq_utils as utils
-from pymodaq.daq_utils import gui_utils as gutils
 from pymodaq.daq_utils.exceptions import ViewerError
 import datetime
 

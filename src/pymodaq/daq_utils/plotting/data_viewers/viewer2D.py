@@ -3,8 +3,6 @@ import copy
 import datetime
 import numpy as np
 import sys
-
-import pymodaq.daq_utils.messenger
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import QObject, Slot, Signal
 import pyqtgraph as pg
@@ -23,7 +21,7 @@ from pymodaq.daq_utils.plotting.utils.filter import FilterFromCrosshair, FilterF
 import pymodaq.daq_utils.daq_utils as utils
 import pymodaq.daq_utils.gui_utils as gutils
 from pymodaq.daq_utils.exceptions import ViewerError
-
+from pymodaq.daq_utils.messenger import deprecation_msg
 logger = utils.set_logger(utils.get_module_name(__file__))
 
 Gradients.update(OrderedDict([
@@ -757,14 +755,14 @@ class Viewer2D(ViewerBase):
         self.filter_from_crosshair.filter_data(self._datas)
 
     def setImage(self, data_red=None, data_green=None, data_blue=None, data_spread=None):
-        pymodaq.daq_utils.messenger.deprecation_msg(f'setImage for PyMoDAQ Viewer2D is deprecated, use *show_data* with'
+        deprecation_msg(f'setImage for PyMoDAQ Viewer2D is deprecated, use *show_data* with'
                                                     f'one argument as utils.DataFromPlugins', stacklevel=3)
         datas = self.format_data_as_datafromplugins(data_red=data_red, data_green=data_green,
                                                     data_blue=data_blue, data_spread=data_spread)
         self.show_data(datas)
 
     def setImageTemp(self, data_red=None, data_green=None, data_blue=None, data_spread=None):
-        pymodaq.daq_utils.messenger.deprecation_msg(f'setImageTemp for PyMoDAQ Viewer2D is deprecated, use *show_data_temp* with'
+        deprecation_msg(f'setImageTemp for PyMoDAQ Viewer2D is deprecated, use *show_data_temp* with'
                          f'one argument as utils.DataFromPlugins')
         datas = self.format_data_as_datafromplugins(data_red=data_red, data_green=data_green,
                                                     data_blue=data_blue, data_spread=data_spread)
