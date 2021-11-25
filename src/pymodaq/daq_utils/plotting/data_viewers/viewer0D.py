@@ -6,16 +6,13 @@ from pymodaq.daq_utils.messenger import deprecation_msg
 import pymodaq.daq_utils.daq_utils as utils
 from pymodaq.daq_utils.plotting.data_viewers.viewer0D_GUI import Ui_Form
 from pymodaq.daq_utils.plotting.data_viewers.viewerbase import ViewerError
-from pymodaq.daq_utils.plotting.utils.plot_utils import Data0DWithHistory
+from pymodaq.daq_utils.plotting.plot_utils import Data0DWithHistory
+from pymodaq.daq_utils.plotting.plot_utils import label_formatter
 import numpy as np
 from collections import OrderedDict
 import datetime
 
 logger = utils.set_logger(utils.get_module_name(__file__))
-
-
-def default_label_formatter(ind: int) -> str:
-    return f'CH{ind:02.0f}'
 
 
 class Viewer0D(QtWidgets.QWidget, QObject):
@@ -85,7 +82,7 @@ class Viewer0D(QtWidgets.QWidget, QObject):
         self.update_channels()
         Ndatas = len(datas)
         if self.labels == [] or len(self.labels) != Ndatas:
-            self._labels = [default_label_formatter(ind) for ind in range(Ndatas)]
+            self._labels = [label_formatter(ind) for ind in range(Ndatas)]
 
         self.plot_channels = []
         self.ui.values_list.clear()

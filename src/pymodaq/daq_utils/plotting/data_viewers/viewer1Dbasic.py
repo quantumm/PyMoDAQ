@@ -4,6 +4,7 @@ import sys
 import pyqtgraph as pg
 import numpy as np
 from pymodaq.daq_utils import daq_utils as utils
+from pymodaq.daq_utils.plotting.plot_utils import label_formatter
 
 logger = utils.set_logger(utils.get_module_name(__file__))
 
@@ -42,11 +43,10 @@ class Viewer1DBasic(QObject):
 
         self.plot_colors = utils.plot_colors
 
-        self.data_to_export = None
         self.datas = None
         self._x_axis = None
+        self._labels = []
 
-        self.labels = []
         self.plot_channels = None
         self.legend = None
         self.setup_ui()
@@ -90,37 +90,35 @@ class Viewer1DBasic(QObject):
 
     @labels.setter
     def labels(self, labels):
-        self._labels = labels
         self.update_labels(labels)
 
     def update_labels(self, labels=[]):
-        try:
-            if self.datas is not None:
-                labels_tmp = labels[:]
-                if self.labels == labels:
-                    if self.labels == [] or len(self.labels) < len(self.datas):
-                        self._labels = ["CH{}".format(ind) for ind in range(len(self.datas))]
+        if self.datas is not None:
+            labels_tmp = labels[:]
+            if self.labels == labels:
+                if self.labels == [] or len(self.labels) < len(self.datas):
+                    self._labels = [label_formatter(ind) for ind in range(len(self.datas))]
+            else:
+                flag = True
+                while flag:
+                    items = [item[1].text for item in self.legend.items]
+                    if len(items) == 0:
+                        flag = False
+                    else:
+                        self.legend.removeItem(items[0])
+
+                if len(labels) <= len(self.plot_channels):
+                    for ind in range(len(labels), len(self.plot_channels)):
+                        labels_tmp.append(label_formatter(ind))
                 else:
-                    flag = True
-                    while flag:
-                        items = [item[1].text for item in self.legend.items]
-                        if len(items) == 0:
-                            flag = False
-                        else:
-                            self.legend.removeItem(items[0])
+                    labels_tmp = labels[:len(self.plot_channels)]
 
-                    if len(labels) < len(self.plot_channels):
-                        for ind in range(len(labels), len(self.plot_channels)):
-                            labels_tmp.append('CH{:02d}'.format(ind))
+                if len(labels_tmp) == len(self.plot_channels):
+                    for ind, channel in enumerate(self.plot_channels):
+                        self.legend.addItem(channel, labels_tmp[ind])
 
-                    if len(labels_tmp) == len(self.plot_channels):
-                        for ind, channel in enumerate(self.plot_channels):
-                            self.legend.addItem(channel, labels_tmp[ind])
+                self._labels = labels_tmp
 
-                    self._labels = labels_tmp
-
-        except Exception as e:
-            logger.exception(str(e))
 
     @Slot(list)
     def show_data(self, datas):
@@ -158,32 +156,38 @@ class Viewer1DBasic(QObject):
             for channel in self.plot_channels:
                 self.plotwidget.removeItem(channel)
             self.plot_channels = None
-        if self.legend is not None:
-            items = [item[1].text for item in self.legend.items]
-            for item in items:
-                self.legend.removeItem(item)
 
     def set_axis_label(self, axis_settings=dict(orientation='bottom', label='x axis', units='pxls')):
         axis = self.plotwidget.plotItem.getAxis(axis_settings['orientation'])
         axis.setLabel(text=axis_settings['label'], units=axis_settings['units'])
+
+    def get_axis_label(self,  orientation='bottom'):
+        axis = self.plotwidget.plotItem.getAxis(orientation)
+        return axis.labelText
+
+    def get_axis_units(self,  orientation='bottom'):
+        axis = self.plotwidget.plotItem.getAxis(orientation)
+        return axis.labelUnits
 
     @property
     def x_axis(self):
         return self._x_axis
 
     @x_axis.setter
-    def x_axis(self, x_axis):
+    def x_axis(self, x_axis: utils.Axis):
         label = 'Pxls'
         units = ''
-        if isinstance(x_axis, dict):
+        if isinstance(x_axis, utils.Axis):
             if 'data' in x_axis:
                 xdata = x_axis['data']
             if 'label' in x_axis:
                 label = x_axis['label']
             if 'units' in x_axis:
                 units = x_axis['units']
-        else:
+        elif isinstance(x_axis, np.ndarray):
             xdata = x_axis
+        else:
+            raise TypeError(f'xaxis should be either a utils.Axis or ndarray instance')
         self._x_axis = xdata
         self.show_data(self.datas)
         self.set_axis_label(dict(orientation='bottom', label=label, units=units))

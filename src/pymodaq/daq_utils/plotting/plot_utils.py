@@ -372,3 +372,7 @@ class AxisInfosExtractor:
         offset = axis.axis_offset
 
         return scaling, offset, label, units
+
+
+def label_formatter(ind: int) -> str:
+    return f'CH{ind:02.0f}'

@@ -1,94 +1,162 @@
 from qtpy import QtWidgets
-import pytest
+from pytest import approx, mark, fixture, raises
 import numpy as np
 
-from pyqtgraph.graphicsItems.PlotItem.PlotItem import PlotItem
-from pyqtgraph.graphicsItems.InfiniteLine import InfiniteLine
-from pyqtgraph.graphicsItems.LinearRegionItem import LinearRegionItem
 from pymodaq.daq_utils.plotting.data_viewers.viewer1Dbasic import Viewer1DBasic
 from pymodaq.daq_utils.conftests import qtbotskip
-pytestmark = pytest.mark.skipif(qtbotskip, reason='qtbot issues but tested locally')
+from pymodaq.daq_utils import daq_utils as utils
+from pymodaq.daq_utils.plotting.plot_utils import label_formatter
 
-@pytest.fixture
+pytestmark = mark.skipif(qtbotskip, reason='qtbot issues but tested locally')
+
+
+@fixture
 def init_prog(qtbot):
     form = QtWidgets.QWidget()
     prog = Viewer1DBasic(form)
     qtbot.addWidget(form)
-    yield prog
+    yield prog, qtbot
     form.close()
+
+
+def init_data():
+    x = np.linspace(-10, 200, 201)
+    y1 = utils.gauss1D(x, 75, 25)
+    y2 = utils.gauss1D(x, 120, 50, 2)
+    return x, y1, y2
+
+
+class MainTest:
+    def maintest(self, init_prog):
+        prog, qtbot = init_prog
+        x, y1, y2 = init_data()
+        prog.show_data([y1, y2])
+
+        assert np.any(prog.x_axis == approx(np.linspace(0, len(y1), len(y1), endpoint=False)))
+
+        prog.x_axis = x
+        assert np.any(prog.x_axis == approx(x))
+
+        assert prog.labels == [label_formatter(ind) for ind in range(2)]
+
+        NEW_LABEL = ['label1', 'label2']
+        prog.labels = NEW_LABEL
+
+        assert prog.labels == NEW_LABEL
 
 
 class TestViewer1DBasic:
     def test_init(self, init_prog):
-        prog = init_prog
-
+        prog, qtbot = init_prog
         assert isinstance(prog.parent, QtWidgets.QWidget)
-        assert not prog.data_to_export
         assert not prog.datas
         assert not prog._x_axis
-        assert not prog.labels
+
+    def test_noparent(self, qtbot):
+        prog = Viewer1DBasic()
+        assert isinstance(prog.parent, QtWidgets.QWidget)
+        qtbot.addWidget(prog.parent)
 
     def test_show(self, init_prog):
-        prog = init_prog
-
+        prog, qtbot = init_prog
         prog.parent.setVisible(False)
         assert not prog.parent.isVisible()
-
         prog.show()
         assert prog.parent.isVisible()
-
         prog.show(False)
         assert not prog.parent.isVisible()
 
-    def test_update_region(self, init_prog):
-        prog = init_prog
+    def show_data(self, init_prog):
+        prog, qtbot = init_prog
+        x, y1, y2 = init_data()
+        prog.show_data([y1, y2])
 
-        ROI = LinearRegionItem()
-
-        prog.update_region(ROI)
-
-    def test_update_line(self, init_prog):
-        prog = init_prog
-
-        IL = InfiniteLine()
-
-        prog.update_line(IL)
+        assert np.any(prog.x_axis == approx(np.linspace(0, len(y1), len(y1), endpoint=False)))
+        prog.x_axis = x
+        assert np.any(prog.x_axis == approx(x))
+        assert prog.datas == [y1, y2]
 
     def test_update_labels(self, init_prog):
+        prog, qtbot = init_prog
+        x, y1, y2 = init_data()
+        prog.show_data([y1, y2])
+        assert prog.labels == [label_formatter(ind) for ind in range(2)]
+        NEW_LABEL = ['label1', 'label2']
+        prog.labels = NEW_LABEL
+        assert prog.labels == NEW_LABEL
 
-        prog = init_prog
-        datas = np.linspace(np.linspace(1, 10, 10), np.linspace(11, 20, 10), 2)
-        prog.datas = datas
-        item = PlotItem()
-        prog.legend.addItem(item, 'item_00')
-        prog.plot_channels = ['CH_00', 'CH_01', 'CH_02', 'CH_03']
-        labels = ['CH_00', 'CH_01']
-        prog.update_labels(labels)
-        assert prog._labels == ['CH_00', 'CH_01', 'CH02', 'CH03']
-        prog.legend = None
-        prog.update_labels(labels)
+    def test_less_labels_than_plot(self, init_prog):
+        prog, qtbot = init_prog
+        x, y1, y2 = init_data()
+        prog.show_data([y1, y2])
 
-    def test_show_data(self, init_prog):
-        prog = init_prog
+        NEW_LABEL = 'label1'
+        prog.labels = [NEW_LABEL]
 
-        datas = np.linspace(np.linspace(1, 10, 10), np.linspace(11, 20, 10), 2)
+        assert prog.labels == [NEW_LABEL, label_formatter(1)]
 
-        prog.plot_channels = ['CH_00', 'CH_01', 'CH_02', 'CH_03']
+    def test_more_labels_than_plot(self, init_prog):
+        prog, qtbot = init_prog
+        x, y1, y2 = init_data()
+        prog.show_data([y1, y2])
 
-        item = PlotItem()
-        prog.legend.addItem(item, 'item_00')
+        NEW_LABEL = 'label1'
+        prog.labels = [NEW_LABEL, NEW_LABEL, NEW_LABEL]
 
-        prog.show_data(datas)
+        assert prog.labels == [NEW_LABEL, NEW_LABEL]
 
     def test_x_axis(self, init_prog):
-        prog = init_prog
+        prog, qtbot = init_prog
+        x, y1, y2 = init_data()
+        prog.show_data([y1, y2])
 
-        data = np.linspace(1, 10, 10)
-        label = ['CH_00', 'CH_01']
+        label = 'this is x axis'
         units = 'nm'
 
-        x_axis = {'data': data, 'label': label, 'units': units}
-
+        x_axis = utils.Axis(data=x, label=label, units=units)
         prog.x_axis = x_axis
 
-        assert np.array_equal(prog._x_axis, data)
+        assert np.any(prog.x_axis == approx(x))
+        assert prog.get_axis_label('bottom') == label
+        assert prog.get_axis_units('bottom') == units
+
+    def test_x_axis_ndarray(self, init_prog):
+        prog, qtbot = init_prog
+        x, y1, y2 = init_data()
+        prog.show_data([y1, y2])
+        prog.x_axis = x
+
+    def test_x_axis_error(self, init_prog):
+        prog, qtbot = init_prog
+        with raises(TypeError):
+            prog.x_axis = 'not a valid axis'
+
+    def test_update_region(self, init_prog):
+        prog, qtbot = init_prog
+
+        with qtbot.waitSignal(prog.roi_region_signal) as blocker:
+            prog.roi_region.lineMoved(0)
+
+        assert blocker.args[0] == prog.roi_region.getRegion()
+
+    def test_update_line(self, init_prog):
+        prog, qtbot = init_prog
+
+        LINE_POS = 20
+
+        with qtbot.waitSignal(prog.roi_line_signal) as blocker:
+            prog.roi_line.setPos(LINE_POS)
+
+        assert blocker.args[0] == prog.roi_line.getPos()[0]
+
+    def test_remove_plots(self, init_prog):
+        prog, qtbot = init_prog
+        x, y1, y2 = init_data()
+        prog.show_data([y1])
+        assert [item[1].text for item in prog.legend.items] == [label_formatter(ind) for ind in range(1)]
+
+        prog.show_data([y1, y2])
+        assert [item[1].text for item in prog.legend.items] == [label_formatter(ind) for ind in range(2)]
+
+        prog.show_data([y1])
+        assert [item[1].text for item in prog.legend.items] == [label_formatter(ind) for ind in range(1)]

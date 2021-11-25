@@ -1,6 +1,5 @@
 from collections import OrderedDict
 import copy
-import datetime
 import numpy as np
 import sys
 from qtpy import QtCore, QtGui, QtWidgets
@@ -16,11 +15,9 @@ from pymodaq.daq_utils.plotting.data_viewers.viewerbase import ViewerBase
 from pymodaq.daq_utils.plotting.items.image import UniformImageItem, SpreadImageItem
 from pymodaq.daq_utils.plotting.items.axis_scaled import AXIS_POSITIONS
 from pymodaq.daq_utils.plotting.items.crosshair import Crosshair
-from pymodaq.daq_utils.plotting.utils.plot_utils import Data0DWithHistory, AxisInfosExtractor
-from pymodaq.daq_utils.plotting.utils.filter import FilterAtAlong, FilterFromRois
+from pymodaq.daq_utils.plotting.plot_utils import Data0DWithHistory, AxisInfosExtractor
+from pymodaq.daq_utils.plotting.filter import FilterAtAlong, FilterFromRois
 import pymodaq.daq_utils.daq_utils as utils
-import pymodaq.daq_utils.gui_utils as gutils
-from pymodaq.daq_utils.exceptions import ViewerError
 from pymodaq.daq_utils.messenger import deprecation_msg
 logger = utils.set_logger(utils.get_module_name(__file__))
 

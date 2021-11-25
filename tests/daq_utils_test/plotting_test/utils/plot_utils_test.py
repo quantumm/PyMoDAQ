@@ -1,4 +1,4 @@
-from pymodaq.daq_utils.plotting.utils.plot_utils import Data0DWithHistory
+from pymodaq.daq_utils.plotting.plot_utils import Data0DWithHistory
 from pytest import approx, fixture
 import numpy as np
 

@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from pymodaq.daq_utils import daq_utils as utils
-from pymodaq.daq_utils.plotting.data_viewers.viewer0D import Viewer0D, default_label_formatter
+from pymodaq.daq_utils.plotting.data_viewers.viewer0D import Viewer0D, label_formatter
 from collections import OrderedDict
 
 from pymodaq.daq_utils.conftests import qtbotskip
@@ -52,13 +52,13 @@ class TestViewer0D:
             datas = utils.DataFromPlugins(dim='Data0D', data=[np.array([y11]), np.array([y22])])
             prog.show_data(datas)
             QtWidgets.QApplication.processEvents()
-            assert prog.labels == [default_label_formatter(ind) for ind in range(len(datas['data']))]
+            assert prog.labels == [label_formatter(ind) for ind in range(len(datas['data']))]
 
     def test_show_data_and_change_labels(self, init_prog):
         prog, qtbot = init_prog
         datas = utils.DataFromPlugins(dim='Data0D', data=[np.array([2.7]), np.array([9.6])])
         prog.show_data(datas)
-        assert prog.labels == [default_label_formatter(ind) for ind in range(len(datas['data']))]
+        assert prog.labels == [label_formatter(ind) for ind in range(len(datas['data']))]
 
         NEW_LABELS = ['labelA', 'labelB']
         datas = utils.DataFromPlugins(dim='Data0D', data=[np.array([2.7]), np.array([9.6])],
@@ -72,7 +72,7 @@ class TestViewer0D:
 
         datas = utils.DataFromPlugins(dim='Data0D', data=[np.array([2.7]), np.array([9.6]), np.array([34.6])])
         prog.show_data(datas)
-        assert prog.labels == [default_label_formatter(ind) for ind in range(len(datas['data']))]
+        assert prog.labels == [label_formatter(ind) for ind in range(len(datas['data']))]
 
     def test_clear_data(self, init_prog):
         prog, qtbot = init_prog

@@ -2,7 +2,7 @@ import collections
 
 import numpy as np
 import pyqtgraph as pg
-from pymodaq.daq_utils.plotting.utils.plot_utils import makeAlphaTriangles, makePolygons
+from pymodaq.daq_utils.plotting.plot_utils import makeAlphaTriangles, makePolygons
 from pyqtgraph import debug as debug, Point, functions as fn
 from qtpy import QtCore, QtGui
 
