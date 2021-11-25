@@ -150,8 +150,10 @@ class TestData0DWithHistory:
             data_histo.add_datas(d)
         data_histo.clear_data()
 
-        assert data_histo.datas == dict([])
+        assert 'CH0' in data_histo.datas
+        assert 'CH1' in data_histo.datas
         assert data_histo._data_length == 0
+        assert data_histo.datas['CH0'].size ==0
 
 
 

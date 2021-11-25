@@ -26,6 +26,8 @@ class Filter:
             filtered_data = self.concrete_filter_data(data)
             if filtered_data is not None and self._slot_to_send_data is not None:
                 self._slot_to_send_data(filtered_data)
+        else:
+            filtered_data = dict([])
         return filtered_data
 
     def concrete_filter_data(self, data: utils.DataFromPlugins):

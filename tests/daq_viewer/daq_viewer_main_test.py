@@ -1,7 +1,7 @@
 from pymodaq.daq_viewer import daq_viewer_main as daqvm
 import pytest
-from pytest import fixture
-from pymodaq.daq_utils.conftests import qtbotskip
+from pytest import fixture, mark
+from pymodaq.daq_utils.conftests import qtbotskip, main_modules_skip
 pytestmark = pytest.mark.skipif(qtbotskip, reason='qtbot issues but tested locally')
 
 
@@ -9,10 +9,9 @@ pytestmark = pytest.mark.skipif(qtbotskip, reason='qtbot issues but tested local
 def init_qt(qtbot):
     return qtbot
 
-
+@mark.skipif(main_modules_skip, reason='main module heavy qt5 testing')
 class TestGeneral:
-
-    @pytest.mark.parametrize('daq_type', ['DAQ0D', 'DAQ1D', 'DAQ2D'])
+    @mark.parametrize('daq_type', ['DAQ0D', 'DAQ1D', 'DAQ2D'])
     def test_main_set_daqtype_init_snap_desinit_quit(self, init_qt, daq_type):
         qtbot = init_qt
         viewer, win = daqvm.main(False)
