@@ -1,5 +1,6 @@
 from multipledispatch import dispatch
 from pymodaq.daq_utils.plotting.items.axis_scaled import AxisItem_Scaled
+from pymodaq.daq_utils.messenger import deprecation_msg
 from qtpy import QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
@@ -326,6 +327,7 @@ class AxisInfosExtractor:
     @staticmethod
     @dispatch(np.ndarray)
     def extract_axis_info(axis: np.ndarray):
+        deprecation_msg(f'axis {axis} should be a {utils.Axis} instance not a ndarray')
         label = ''
         units = ''
         data = axis
@@ -341,6 +343,13 @@ class AxisInfosExtractor:
                     offset = np.max(data)
 
         return scaling, offset, label, units
+
+    @staticmethod
+    @dispatch(dict)
+    def extract_axis_info(axis: dict):
+        deprecation_msg(f'axis {axis} should be a {utils.Axis} instance not a dict')
+        axis_utils = utils.Axis(data=axis['data'], label=axis['label'], units=axis['units'])
+        return AxisInfosExtractor.extract_axis_info(axis_utils)
 
     @staticmethod
     @dispatch(utils.Axis)

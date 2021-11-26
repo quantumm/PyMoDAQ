@@ -1139,7 +1139,7 @@ class DAQ_Scan(QObject):
                     if not utils.odd_even(self.ind_scan):
 
                         self.scan_data_1D[int(self.ind_scan / 2), :] = \
-                            np.array([self.get_data_live_bkg(datas, key, bkg) for key in datas])
+                            np.squeeze(np.array([self.get_data_live_bkg(datas, key, bkg) for key in datas]))
 
                         if self.settings.child('scan_options', 'scan_average').value() > 1:
                             self.scan_data_1D_average[self.ind_scan, :] = \
@@ -1149,7 +1149,7 @@ class DAQ_Scan(QObject):
 
                 else:
                     self.scan_data_1D[self.ind_scan, :] = \
-                        np.array([self.get_data_live_bkg(datas, key, bkg) for key in datas])
+                        np.squeeze(np.array([self.get_data_live_bkg(datas, key, bkg) for key in datas]))
 
                     if self.settings.child('scan_options', 'scan_average').value() > 1:
                         self.scan_data_1D_average[self.ind_scan, :] = \
