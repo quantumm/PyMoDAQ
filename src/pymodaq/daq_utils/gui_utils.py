@@ -294,7 +294,7 @@ def widget_to_png_to_bytes(widget, keep_aspect=True, width=200, height=100):
     wwidth = widget.width()
     wheight = widget.height()
     if keep_aspect:
-        height = width * wheight / wwidth
+        height = int(width * wheight / wwidth)
 
     png = png.scaled(width, height, QtCore.Qt.KeepAspectRatio)
     buffer = QtCore.QBuffer()

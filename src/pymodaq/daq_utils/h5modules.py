@@ -1498,7 +1498,7 @@ class H5SaverBase(H5Backend):
                                                               remove_scan_dimension=True)
         else:
             shape, dimension, size = data_dict['data'].shape, '0D', 1
-        data_array = self.add_array(channel_group, 'Data', 'data', array_type=np.float,
+        data_array = self.add_array(channel_group, 'Data', 'data', array_type=float,
                                     title=title,
                                     data_shape=shape,
                                     data_dimension=dimension, scan_type=scan_type,
@@ -1512,7 +1512,7 @@ class H5SaverBase(H5Backend):
                 tmp_dict = copy.deepcopy(data_dict['x_axis'])
                 array_to_save = tmp_dict.pop('data')
             self.add_array(channel_group, 'x_axis', 'axis',
-                           array_type=np.float, array_to_save=array_to_save,
+                           array_type=float, array_to_save=array_to_save,
                            enlargeable=False, data_dimension='1D', metadata=tmp_dict)
         if 'y_axis' in data_dict:
             if not isinstance(data_dict['y_axis'], dict):
@@ -1522,7 +1522,7 @@ class H5SaverBase(H5Backend):
                 tmp_dict = copy.deepcopy(data_dict['y_axis'])
                 array_to_save = tmp_dict.pop('data')
             self.add_array(channel_group, 'y_axis', 'axis',
-                           array_type=np.float, array_to_save=array_to_save,
+                           array_type=float, array_to_save=array_to_save,
                            enlargeable=False, data_dimension='1D', metadata=tmp_dict)
         return data_array
 
@@ -1613,7 +1613,7 @@ class H5SaverBase(H5Backend):
         title: (str) the title attribute of the array node
         array_to_save: (ndarray or None) data to be saved in the array. If None, array_type and data_shape
                         should be specified
-        array_type: (np.dtype or numpy types), eg np.float, np.int32 ...
+        array_type: (np.dtype or numpy types), eg float, np.int32 ...
         enlargeable: (bool) if False, data are save as a CARRAY, otherwise as a EARRAY (for ragged data, see add_sting_array)
         metadata: (dict) dictionnary whose keys will be saved as the array attributes
         init: (bool) if True, the array saved in the h5 file is initialized with the correct type but all element equal
