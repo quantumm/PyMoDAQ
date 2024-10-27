@@ -25,6 +25,7 @@ from pymodaq.utils.enums import BaseEnum, enum_checker
 from pymodaq.utils.tcp_ip.mysocket import Socket
 from pymodaq.utils.tcp_ip.serializer import DeSerializer, Serializer
 from pymodaq import Unit
+from pint.errors import OffsetUnitCalculusError
 
 if TYPE_CHECKING:
     from pymodaq.control_modules.daq_move import DAQ_Move_Hardware
@@ -438,7 +439,6 @@ class DAQ_Move_base(QObject):
             self.axis_unit = self.axis_unit
             self.settings.child('epsilon').setValue(self.epsilon)
 
-
     @property
     def axis_names(self) -> Union[List, Dict]:
         """ Get/Set the names of all axes controlled by this instrument plugin
@@ -728,6 +728,13 @@ class DAQ_Move_base(QObject):
             epsilon_calculated = abs(self._current_value.value() - self._target_value.value())
             logger.warning(f'Unit issue when calculating epsilon, units are not compatible between'
                            f'target and current values')
+        except OffsetUnitCalculusError as e:
+            if '°C' in self.axis_unit or 'celcius' in self.axis_unit.lower():
+                epsilon_calculated = (
+                        self._current_value.to_base_units() -
+                        self._target_value.to_base_units()).abs().value()
+            else:
+                raise e
 
         return (epsilon_calculated < self.epsilon) and self.user_condition_to_reach_target()
 
