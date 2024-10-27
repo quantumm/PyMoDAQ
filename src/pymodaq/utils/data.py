@@ -648,6 +648,13 @@ class DataBase(DataLowLevel):
         """ Change immediately the units to whatever else. Use this with care!"""
         self._units = units
 
+    def to_base_units(self):
+        dwa = self.deepcopy()
+        data_quantities = [quantity.to_base_units() for quantity in self.quantities]
+        dwa.data = [quantity.magnitude for quantity in data_quantities]
+        dwa.force_units(str(data_quantities[0].units))
+        return dwa
+
     def units_as(self, units: str, inplace=True) -> 'DataBase':
         """ Set the object units to the new one (if possible)
 
