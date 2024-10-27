@@ -437,7 +437,8 @@ class DAQ_Move_base(QObject):
             QtWidgets.QApplication.processEvents()
             self.axis_unit = self.axis_unit
             self.settings.child('epsilon').setValue(self.epsilon)
-
+            if self.controller is not None:
+                self._current_value = self.get_actuator_value()
 
     @property
     def axis_names(self) -> Union[List, Dict]:
